@@ -101,8 +101,13 @@ html, body {
   box-shadow: 0 0 6px var(--color-warning);
   transition: background 200ms, box-shadow 200ms;
 }
-.status-dot.ok { background: var(--color-accent-bright); box-shadow: 0 0 8px var(--color-accent-bright); }
+.status-dot.ok { background: var(--color-accent-bright); box-shadow: 0 0 8px var(--color-accent-bright); animation: pulse-live 1.8s ease-in-out infinite; }
 .status-dot.err { background: var(--color-destructive); box-shadow: 0 0 8px var(--color-destructive); }
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--color-accent-bright); }
+  50% { opacity: 0.35; box-shadow: 0 0 3px var(--color-accent-bright); }
+}
 
 main {
   max-width: 1200px;
