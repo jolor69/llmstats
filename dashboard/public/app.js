@@ -132,6 +132,7 @@ function openDrawer(hash, label, account) {
   el("history-drawer").classList.add("open");
   el("history-drawer").setAttribute("aria-hidden", "false");
   loadHistory();
+  loadModels();
 }
 
 function closeDrawer() {
@@ -170,6 +171,34 @@ async function loadHistory() {
   } catch (err) {
     console.error(err);
     el("drawer-meta").textContent = "failed to load history";
+  }
+}
+
+async function loadModels() {
+  if (!currentHash) return;
+  const container = el("models-table");
+  container.innerHTML = '<div class="models-empty">loading...</div>';
+  try {
+    const data = await apiGet(`/apps/${encodeURIComponent(currentHash)}/models`);
+    const models = data.models ?? [];
+    if (models.length === 0) {
+      container.innerHTML = '<div class="models-empty">no activity in the last 30 days</div>';
+      return;
+    }
+    container.innerHTML = models
+      .map(
+        (m) => `
+      <div class="model-row">
+        <span class="model-name">${escapeHtml(m.model)}</span>
+        <span class="model-requests">${m.requests} req</span>
+        <span class="model-usage">${usd(m.usage)}</span>
+      </div>
+    `
+      )
+      .join("");
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<div class="models-empty">failed to load model breakdown</div>';
   }
 }
 

@@ -1,6 +1,10 @@
+import { fetchActivity } from "../../../shared/openrouter";
+import { parseAccounts } from "../../../shared/accounts";
+
 export interface Env {
   DB: D1Database;
   API_SHARED_SECRET: string;
+  OPENROUTER_ACCOUNTS: string; // JSON: [{"name":"neuralstocks.dev","key":"sk-or-..."}]
 }
 
 interface LatestKeyRow {
@@ -42,6 +46,10 @@ export default {
       if (parts.length === 4 && parts[1] === "apps" && parts[3] === "history") {
         const days = Number(url.searchParams.get("days") ?? "7");
         return json(await getKeyHistory(env.DB, decodeURIComponent(parts[2]), days));
+      }
+
+      if (parts.length === 4 && parts[1] === "apps" && parts[3] === "models") {
+        return json(await getKeyModels(env.DB, env.OPENROUTER_ACCOUNTS, decodeURIComponent(parts[2])));
       }
 
       if (parts.length === 2 && parts[1] === "account") {
@@ -132,6 +140,37 @@ async function getKeyHistory(db: D1Database, hash: string, days: number) {
     days,
     points: points.results ?? [],
   };
+}
+
+async function getKeyModels(db: D1Database, accountsSecret: string, hash: string) {
+  const labelRow = await db
+    .prepare(`SELECT key_label, account_name FROM key_snapshots WHERE key_hash = ? ORDER BY fetched_at DESC LIMIT 1`)
+    .bind(hash)
+    .first<{ key_label: string; account_name: string }>();
+
+  if (!labelRow) return { hash, label: null, account: null, models: [] };
+
+  const accounts = parseAccounts(accountsSecret);
+  const account = accounts.find((a) => a.name === labelRow.account_name);
+  if (!account) return { hash, label: labelRow.key_label, account: labelRow.account_name, models: [] };
+
+  const items = await fetchActivity(account.managementKey, { apiKeyHash: hash });
+
+  const byModel = new Map<string, { usage: number; requests: number; prompt_tokens: number; completion_tokens: number }>();
+  for (const item of items) {
+    const acc = byModel.get(item.model) ?? { usage: 0, requests: 0, prompt_tokens: 0, completion_tokens: 0 };
+    acc.usage += item.usage;
+    acc.requests += item.requests;
+    acc.prompt_tokens += item.prompt_tokens;
+    acc.completion_tokens += item.completion_tokens;
+    byModel.set(item.model, acc);
+  }
+
+  const models = [...byModel.entries()]
+    .map(([model, s]) => ({ model, ...s }))
+    .sort((a, b) => b.usage - a.usage);
+
+  return { hash, label: labelRow.key_label, account: labelRow.account_name, models };
 }
 
 async function getAccounts(db: D1Database) {

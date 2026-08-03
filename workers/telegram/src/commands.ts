@@ -1,4 +1,4 @@
-import { fetchCredits } from "../../../shared/openrouter";
+import { fetchCredits, fetchActivity } from "../../../shared/openrouter";
 import { parseAccounts } from "../../../shared/accounts";
 import { formatLocal, usd } from "../../../shared/format";
 import type { Env } from "./index";
@@ -61,6 +61,8 @@ export async function handleCommand(text: string, env: Env): Promise<string> {
       return cmdTotal(env);
     case "/top":
       return cmdTop(env);
+    case "/models":
+      return cmdModels(env, rest.join(" "));
     case "/help":
     case "/start":
       return cmdHelp();
@@ -157,12 +159,53 @@ async function cmdTop(env: Env): Promise<string> {
   return `<b>Top spenders (24h)</b>\n${top.map((t, i) => `${i + 1}. ${t.label}: ${usd(t.delta)}`).join("\n")}`;
 }
 
+async function cmdModels(env: Env, name: string): Promise<string> {
+  if (!name) return "Usage: /models <key name>";
+
+  const rows = await latestPerKey(env.DB);
+  const match = rows.find((r) => r.key_label.toLowerCase().includes(name.toLowerCase()));
+  if (!match) return `No key matching "${name}"`;
+
+  const accounts = parseAccounts(env.OPENROUTER_ACCOUNTS);
+  const account = accounts.find((a) => a.name === match.account_name);
+  if (!account) return `Account "${match.account_name}" not found in OPENROUTER_ACCOUNTS config.`;
+
+  let items;
+  try {
+    items = await fetchActivity(account.managementKey, { apiKeyHash: match.key_hash });
+  } catch (err) {
+    console.error(err);
+    return "Failed to fetch model activity from OpenRouter. Try again shortly.";
+  }
+
+  if (items.length === 0) return `No activity for "${match.key_label}" in the last 30 days.`;
+
+  const byModel = new Map<string, { usage: number; requests: number }>();
+  for (const item of items) {
+    const acc = byModel.get(item.model) ?? { usage: 0, requests: 0 };
+    acc.usage += item.usage;
+    acc.requests += item.requests;
+    byModel.set(item.model, acc);
+  }
+
+  const sorted = [...byModel.entries()].sort((a, b) => b[1].usage - a[1].usage);
+  const lines = sorted.map(([model, s]) => `${model}: ${usd(s.usage)} (${s.requests} req)`);
+  const total = sorted.reduce((sum, [, s]) => sum + s.usage, 0);
+
+  return (
+    `<b>${match.key_label}</b> [${match.account_name}] — models (last 30d)\n` +
+    `${lines.join("\n")}\n\n` +
+    `Total: ${usd(total)}`
+  );
+}
+
 function cmdHelp(): string {
   return (
     `<b>Commands</b>\n` +
     `/balance - live balance per account + combined\n` +
     `/keys - all keys across all accounts, latest usage/limit\n` +
     `/key &lt;name&gt; - detail for one key\n` +
+    `/models &lt;name&gt; - per-model spend for one key (last 30d)\n` +
     `/total - total usage per account + combined\n` +
     `/top - top 3 spenders in last 24h\n` +
     `/help - this message`

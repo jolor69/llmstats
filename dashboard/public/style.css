@@ -335,6 +335,35 @@ footer {
 #history-chart { width: 100%; height: 220px; background: var(--color-muted); border: 1px solid var(--color-border); border-radius: 3px; }
 .drawer-meta { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: var(--color-muted-fg); }
 
+.models-section { margin-top: 8px; }
+.models-section h4 {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--color-muted-fg);
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.models-section .section-count { color: var(--color-accent-bright); }
+
+.model-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-secondary);
+  margin-bottom: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.78rem;
+}
+.model-row .model-name { color: var(--color-foreground); overflow-wrap: anywhere; }
+.model-row .model-requests { color: var(--color-muted-fg); white-space: nowrap; }
+.model-row .model-usage { color: var(--color-accent-bright); white-space: nowrap; font-weight: 600; }
+.models-empty { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: var(--color-muted-fg); padding: 8px 0; }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
