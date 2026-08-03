@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "llmstats-telegram",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "account_id": "0e2ee5dc3ed565a92c679f44963f12a8",
+  "triggers": {
+    "crons": ["0 0 * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "llmstats-db",
+      "database_id": "d5657781-bbc9-4a6b-9192-8496f288d42e"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

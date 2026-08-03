@@ -1,0 +1,21 @@
+{
+  "name": "llmstats",
+  "private": true,
+  "workspaces": [
+    "workers/*"
+  ],
+  "scripts": {
+    "dev:poller": "npm run dev -w workers/poller",
+    "dev:api": "npm run dev -w workers/api",
+    "dev:telegram": "npm run dev -w workers/telegram",
+    "deploy:poller": "npm run deploy -w workers/poller",
+    "deploy:api": "npm run deploy -w workers/api",
+    "deploy:telegram": "npm run deploy -w workers/telegram",
+    "typecheck": "npm run typecheck -w workers/poller && npm run typecheck -w workers/api && npm run typecheck -w workers/telegram"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "wrangler": "^4.0.0",
+    "@cloudflare/workers-types": "^5.0.0"
+  }
+}

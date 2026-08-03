@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLMSTATS // Neulab</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="bg-robot" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-glyph">◆</span>
+    <span class="brand-text">LLMSTATS</span>
+    <span class="brand-tag">// NEULAB OPS</span>
+  </div>
+  <div class="topbar-status">
+    <span class="status-dot" id="conn-dot"></span>
+    <span id="conn-label">CONNECTING</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero-panel" aria-label="Account summary">
+    <div class="hero-metric">
+      <div class="hero-label">BALANCE</div>
+      <div class="hero-value" id="balance-value">--.--</div>
+    </div>
+    <div class="hero-metric hero-metric--sub">
+      <div class="hero-label">TOTAL USED</div>
+      <div class="hero-value hero-value--sm" id="used-value">--.--</div>
+    </div>
+    <div class="hero-metric hero-metric--sub">
+      <div class="hero-label">TOTAL PURCHASED</div>
+      <div class="hero-value hero-value--sm" id="purchased-value">--.--</div>
+    </div>
+    <div class="hero-metric hero-metric--sub">
+      <div class="hero-label">24H DELTA</div>
+      <div class="hero-value hero-value--sm" id="delta-value">--.--</div>
+    </div>
+    <div class="hero-footer">
+      <span id="last-updated">LAST SYNC: --</span>
+    </div>
+    <div class="hero-accounts" id="hero-accounts" role="list" aria-label="Per-account balances"></div>
+  </section>
+
+  <section aria-label="Application key grid">
+    <div class="section-head">
+      <h2>KEYS <span class="section-count" id="app-count">[0]</span></h2>
+      <input id="filter-input" class="filter-input" type="text" placeholder="FILTER LABEL..." autocomplete="off" />
+    </div>
+    <div class="grid" id="app-grid" role="list"></div>
+  </section>
+</main>
+
+<div class="drawer" id="history-drawer" aria-hidden="true">
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-head">
+      <h3 id="drawer-title">--</h3>
+      <button id="drawer-close" aria-label="Close">×</button>
+    </div>
+    <div class="range-toggle" role="group" aria-label="Range">
+      <button data-days="7" class="range-btn active">7D</button>
+      <button data-days="30" class="range-btn">30D</button>
+      <button data-days="90" class="range-btn">90D</button>
+    </div>
+    <svg id="history-chart" viewBox="0 0 640 220" preserveAspectRatio="none"></svg>
+    <div class="drawer-meta" id="drawer-meta"></div>
+  </div>
+</div>
+
+<footer>
+  <span>llmstats-dashboard :: polling every 15min via llmstats-poller :: openrouter.ai/api/v1</span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
