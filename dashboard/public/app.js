@@ -152,6 +152,7 @@ document.querySelectorAll(".range-btn").forEach((btn) => {
     btn.classList.add("active");
     currentDays = Number(btn.dataset.days);
     loadHistory();
+    loadModels();
   });
 });
 
@@ -179,10 +180,13 @@ async function loadModels() {
   const container = el("models-table");
   container.innerHTML = '<div class="models-empty">loading...</div>';
   try {
-    const data = await apiGet(`/apps/${encodeURIComponent(currentHash)}/models`);
+    const data = await apiGet(`/apps/${encodeURIComponent(currentHash)}/models?days=${currentDays}`);
     const models = data.models ?? [];
+    const days = data.days ?? currentDays;
+    const capped = currentDays > days;
+    el("models-range-label").textContent = capped ? `[LAST ${days}D — OPENROUTER MAX]` : `[LAST ${days}D]`;
     if (models.length === 0) {
-      container.innerHTML = '<div class="models-empty">no activity in the last 30 days</div>';
+      container.innerHTML = `<div class="models-empty">no activity in the last ${days} days</div>`;
       return;
     }
     container.innerHTML = models

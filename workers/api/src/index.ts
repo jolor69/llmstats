@@ -49,7 +49,8 @@ export default {
       }
 
       if (parts.length === 4 && parts[1] === "apps" && parts[3] === "models") {
-        return json(await getKeyModels(env.DB, env.OPENROUTER_ACCOUNTS, decodeURIComponent(parts[2])));
+        const days = Number(url.searchParams.get("days") ?? "7");
+        return json(await getKeyModels(env.DB, env.OPENROUTER_ACCOUNTS, decodeURIComponent(parts[2]), days));
       }
 
       if (parts.length === 2 && parts[1] === "account") {
@@ -142,22 +143,31 @@ async function getKeyHistory(db: D1Database, hash: string, days: number) {
   };
 }
 
-async function getKeyModels(db: D1Database, accountsSecret: string, hash: string) {
+// OpenRouter's /activity endpoint only ever returns the last 30 completed UTC
+// days of per-model rows (each tagged with its own `date`), regardless of query
+// params. We can filter that window down (e.g. to 7 days) but never extend it.
+const MAX_ACTIVITY_DAYS = 30;
+
+async function getKeyModels(db: D1Database, accountsSecret: string, hash: string, days: number) {
   const labelRow = await db
     .prepare(`SELECT key_label, account_name FROM key_snapshots WHERE key_hash = ? ORDER BY fetched_at DESC LIMIT 1`)
     .bind(hash)
     .first<{ key_label: string; account_name: string }>();
 
-  if (!labelRow) return { hash, label: null, account: null, models: [] };
+  if (!labelRow) return { hash, label: null, account: null, models: [], days: 0 };
 
   const accounts = parseAccounts(accountsSecret);
   const account = accounts.find((a) => a.name === labelRow.account_name);
-  if (!account) return { hash, label: labelRow.key_label, account: labelRow.account_name, models: [] };
+  if (!account) return { hash, label: labelRow.key_label, account: labelRow.account_name, models: [], days: 0 };
 
   const items = await fetchActivity(account.managementKey, { apiKeyHash: hash });
 
+  const effectiveDays = Math.min(days, MAX_ACTIVITY_DAYS);
+  const cutoff = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const windowed = items.filter((item) => item.date >= cutoff);
+
   const byModel = new Map<string, { usage: number; requests: number; prompt_tokens: number; completion_tokens: number }>();
-  for (const item of items) {
+  for (const item of windowed) {
     const acc = byModel.get(item.model) ?? { usage: 0, requests: 0, prompt_tokens: 0, completion_tokens: 0 };
     acc.usage += item.usage;
     acc.requests += item.requests;
@@ -170,7 +180,7 @@ async function getKeyModels(db: D1Database, accountsSecret: string, hash: string
     .map(([model, s]) => ({ model, ...s }))
     .sort((a, b) => b.usage - a.usage);
 
-  return { hash, label: labelRow.key_label, account: labelRow.account_name, models };
+  return { hash, label: labelRow.key_label, account: labelRow.account_name, models, days: effectiveDays };
 }
 
 async function getAccounts(db: D1Database) {
