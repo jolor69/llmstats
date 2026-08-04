@@ -350,6 +350,7 @@ footer {
   margin: 0 0 10px;
 }
 .models-section .section-count { color: var(--color-accent-bright); }
+.models-note { font-family: 'Fira Code', monospace; font-size: 0.7rem; color: var(--color-muted-fg); margin: -4px 0 10px; }
 
 .model-row {
   display: grid;

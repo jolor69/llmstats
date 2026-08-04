@@ -183,8 +183,7 @@ async function loadModels() {
     const data = await apiGet(`/apps/${encodeURIComponent(currentHash)}/models?days=${currentDays}`);
     const models = data.models ?? [];
     const days = data.days ?? currentDays;
-    const capped = currentDays > days;
-    el("models-range-label").textContent = capped ? `[LAST ${days}D — OPENROUTER MAX]` : `[LAST ${days}D]`;
+    el("models-range-label").textContent = `[LAST ${days}D]`;
     if (models.length === 0) {
       container.innerHTML = `<div class="models-empty">no activity in the last ${days} days</div>`;
       return;
