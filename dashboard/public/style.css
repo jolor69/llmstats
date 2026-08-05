@@ -324,6 +324,13 @@ footer {
 }
 #drawer-close:hover { border-color: var(--color-destructive); color: var(--color-destructive); }
 
+.drawer-total {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.3rem;
+  color: var(--color-accent-bright);
+  margin: 4px 0 12px;
+}
+
 .range-toggle { display: flex; gap: 8px; }
 .range-btn {
   font-family: 'Fira Code', monospace;

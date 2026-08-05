@@ -93,11 +93,11 @@ function renderGrid(apps) {
       <div class="card-delta">24H: ${app.delta_24h != null ? `<span class="${app.delta_24h > 0 ? "up" : ""}">${usd(app.delta_24h)}</span>` : "n/a"}</div>
     `;
 
-    card.addEventListener("click", () => openDrawer(app.hash, app.label, app.account));
+    card.addEventListener("click", () => openDrawer(app.hash, app.label, app.account, app.usage));
     card.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        openDrawer(app.hash, app.label, app.account);
+        openDrawer(app.hash, app.label, app.account, app.usage);
       }
     });
 
@@ -124,11 +124,12 @@ function applyFilter() {
 let currentHash = null;
 let currentDays = 7;
 
-function openDrawer(hash, label, account) {
+function openDrawer(hash, label, account, usage) {
   currentHash = hash;
   currentDays = 7;
   document.querySelectorAll(".range-btn").forEach((b) => b.classList.toggle("active", b.dataset.days === "7"));
   el("drawer-title").textContent = `${label} [${account}]`;
+  el("drawer-total").textContent = `TOTAL (ALL-TIME): ${usd(usage)}`;
   el("history-drawer").classList.add("open");
   el("history-drawer").setAttribute("aria-hidden", "false");
   loadHistory();
