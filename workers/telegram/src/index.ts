@@ -1,5 +1,5 @@
 import { sendTelegramMessage } from "../../../shared/telegram";
-import { usd } from "../../../shared/format";
+import { staleWarning, usd } from "../../../shared/format";
 import { handleCommand } from "./commands";
 
 export interface Env {
@@ -111,7 +111,11 @@ async function sendDailySummary(env: Env): Promise<void> {
     }
   }
 
+  // Use the OLDEST per-account latest snapshot, so one account silently failing also triggers the warning.
+  const oldestLatest = accounts.reduce((min, a) => (a.fetched_at < min ? a.fetched_at : min), accounts[0].fetched_at);
+
   const text =
+    staleWarning(oldestLatest) +
     `<b>Daily summary</b>\n` +
     `${balanceLines.join("\n")}\n\n` +
     `Combined balance: ${usd(combinedBalance)}\n` +

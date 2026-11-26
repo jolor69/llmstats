@@ -1,6 +1,6 @@
 import { fetchCredits, fetchActivity } from "../../../shared/openrouter";
 import { parseAccounts } from "../../../shared/accounts";
-import { formatLocal, usd } from "../../../shared/format";
+import { formatLocal, staleWarning, usd } from "../../../shared/format";
 import type { Env } from "./index";
 
 interface LatestKeyRow {
@@ -47,7 +47,25 @@ async function delta24h(db: D1Database, keyHash: string): Promise<number | null>
   return prior ? current.usage - prior.usage : null;
 }
 
+/** Newest snapshot time across all accounts, or null if the poller has never written. */
+export async function latestSyncAt(db: D1Database): Promise<string | null> {
+  const row = await db
+    .prepare(`SELECT MAX(fetched_at) AS latest FROM account_snapshots`)
+    .first<{ latest: string | null }>();
+  return row?.latest ?? null;
+}
+
+// Commands whose figures come from D1 snapshots (not live OpenRouter calls).
+const D1_BACKED = new Set(["/keys", "/key", "/total", "/top"]);
+
 export async function handleCommand(text: string, env: Env): Promise<string> {
+  const cmd = text.trim().split(/\s+/)[0];
+  const reply = await dispatch(text, env);
+  if (!D1_BACKED.has(cmd)) return reply;
+  return staleWarning(await latestSyncAt(env.DB)) + reply;
+}
+
+async function dispatch(text: string, env: Env): Promise<string> {
   const [cmd, ...rest] = text.trim().split(/\s+/);
 
   switch (cmd) {
