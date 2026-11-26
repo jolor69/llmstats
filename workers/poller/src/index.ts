@@ -11,16 +11,26 @@ export interface Env {
 
 const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
+// Snapshot retention. Nothing reads further back than 30 days (dashboard max range,
+// OpenRouter /activity cap); "all-time" figures come from OpenRouter's cumulative
+// `usage` on the latest snapshot, not from history.
+const RETENTION_DAYS = 90;
+// Prune once a day, on the first poll cycle of this UTC hour.
+const PRUNE_HOUR_UTC = 3;
+// Cap rows deleted per table per run so a large backlog is spread over several days
+// (each deleted row also deletes its index entries, which count as D1 rows written).
+const PRUNE_BATCH_LIMIT = 5000;
+
 export default {
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(poll(env));
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(poll(env, new Date(event.scheduledTime)));
   },
   async fetch(): Promise<Response> {
     return new Response("llmstats-poller: cron-only worker, no HTTP surface", { status: 404 });
   },
 };
 
-async function poll(env: Env): Promise<void> {
+async function poll(env: Env, scheduledAt: Date): Promise<void> {
   const fetchedAt = nowIso();
   const accounts = parseAccounts(env.OPENROUTER_ACCOUNTS);
 
@@ -65,6 +75,31 @@ async function poll(env: Env): Promise<void> {
 
   await env.DB.batch(statements);
   await maybeFireLowBalanceAlert(env, perAccountBalances, fetchedAt);
+
+  // Only prune after a successful write, so a long poller outage can never age out
+  // the last known snapshot and leave the dashboard/bot with no data at all.
+  if (scheduledAt.getUTCHours() === PRUNE_HOUR_UTC && scheduledAt.getUTCMinutes() < 15) {
+    await pruneOldSnapshots(env, scheduledAt);
+  }
+}
+
+async function pruneOldSnapshots(env: Env, now: Date): Promise<void> {
+  const cutoff = new Date(now.getTime() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const [keys, accounts] = await env.DB.batch([
+      env.DB.prepare(
+        `DELETE FROM key_snapshots WHERE id IN (SELECT id FROM key_snapshots WHERE fetched_at < ? LIMIT ?)`
+      ).bind(cutoff, PRUNE_BATCH_LIMIT),
+      env.DB.prepare(
+        `DELETE FROM account_snapshots WHERE id IN (SELECT id FROM account_snapshots WHERE fetched_at < ? LIMIT ?)`
+      ).bind(cutoff, PRUNE_BATCH_LIMIT),
+    ]);
+    console.log(
+      `Pruned snapshots older than ${cutoff}: ${keys.meta.changes} key rows, ${accounts.meta.changes} account rows`
+    );
+  } catch (err) {
+    console.error("Snapshot prune failed (will retry tomorrow):", err);
+  }
 }
 
 async function maybeFireLowBalanceAlert(
