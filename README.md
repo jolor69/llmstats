@@ -1,6 +1,6 @@
 # llmstats
 
-LLM usage stats dashboard + Telegram bot for Neulab's OpenRouter spend, per PRD-openrouter-stats.md.
+LLM usage stats dashboard + Telegram bot for Neulab's OpenRouter spend.
 
 ## Layout
 
@@ -79,7 +79,7 @@ the `X-API-Key` header server-side, so the shared secret never reaches the brows
      ```
    - Attach custom domain `llmstats.neulab.xyz` to the Pages project in the Cloudflare dashboard.
 
-## Decisions locked in (see PRD section 13)
+## Decisions locked in
 
 - Cloudflare account: `ai.neulab.inc`
 - Display timezone: Asia/Singapore (storage stays UTC)
